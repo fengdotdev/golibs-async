@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/fengdotdev/golibs-async/sandbox/draf1/async"
+	. "github.com/fengdotdev/golibs-async/sandbox/draf1/async"
 )
 
 func main() {
-	async.Async(func() {
+	Async(func() {
 		fmt.Println("Hello, World!")
 	})
 }
