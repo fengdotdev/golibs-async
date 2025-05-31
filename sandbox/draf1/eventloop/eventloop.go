@@ -4,11 +4,12 @@ package eventloop
 // NO concurrency, no channels, no goroutines
 
 type EventLoop struct {
-	ratio          float64                // A ratio to control the processing of events
-	priorityEvents []func()               // A slice to hold event functions
-	awaitEvents    []func()               // A slice to hold events that are waiting to be processed
-	endProgram     bool                   // A flag to indicate if the event loop should stop
-	mapresults     map[string]interface{} // A map to hold results of events
+	ratio             float64                // A ratio to control the processing of events
+	priorityEvents    []func()               // A slice to hold event functions
+	awaitEvents       []func()               // A slice to hold events that are waiting to be processed
+	endProgram        bool                   // A flag to indicate if the event loop should stop
+	mapresults        map[string]interface{} // A map to hold results of events
+	evenLoopIsRunning bool                   // A flag to indicate if the event loop is currently running
 }
 
 func New() *EventLoop {
@@ -30,25 +31,43 @@ func (el *EventLoop) Run() {
 }
 
 func (el *EventLoop) eventloop() {
+	el.evenLoopIsRunning = true
+	// Process priority events first
+	el.loopEventAwait()
 
-	for !el.endProgram {
-		// Process priority events first
-		for _, event := range el.priorityEvents {
-			event()
-		}
-		el.priorityEvents = el.priorityEvents[:0] // Clear after processing
-		// Process await events
-		for _, event := range el.awaitEvents {
-			event()
-		}
-		el.awaitEvents = el.awaitEvents[:0] // Clear after processing
+	el.evenLoopIsRunning = false
+}
+
+func (el *EventLoop) loopEventPriority() {
+	// Process priority events
+	for _, event := range el.priorityEvents {
+		event()
 	}
+	el.priorityEvents = el.priorityEvents[:0] // Clear the priority events after processing
+}
+
+func (el *EventLoop) loopEventAwait() {
+	// Process await events
+	for _, event := range el.awaitEvents {
+		event()
+	}
+	el.awaitEvents = el.awaitEvents[:0] // Clear the await events after processing
+}
+
+func (el *EventLoop) runEventLoop() {
+	if !el.evenLoopIsRunning {
+		el.eventloop()
+	}
+
 }
 
 func (el *EventLoop) Stop() {
 	el.endProgram = true
 }
 
-func (el *EventLoop) Async(fn func()) {
+func (el *EventLoop) Await(fn func()) {
+
 	el.awaitEvents = append(el.awaitEvents, fn)
+
+	el.runEventLoop()
 }
